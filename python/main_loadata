@@ -17,11 +17,12 @@ The function are already written in the file wrappers.py that should be in the s
 To speed up loading of the data, a folder called /Analysis will be created and some data will be saved here
 So that next time, you load the script, the wrappers will search in /Analysis to load faster
 """
-
+import os
 import numpy as np
 import pandas as pd
 import neuroseries as nts
-from pylab import *
+#from pylab import *
+import matplotlib.pyplot as plt
 
 """
 A. LOAD DATA
@@ -29,7 +30,10 @@ A. LOAD DATA
 
 # first we define a string for the data directory
 # It is usually better to separate the data from the code
-data_directory = '/media/3TBHDD/Data/A3302/A3302-190819/A3302-190819'
+rootDir = '/media/3TBHDD/'
+ID = 'A3302'
+session = 'A3302-190819'
+data_directory = rootDir + '/' + ID + '/' + session + '/' + session
 #data_directory = '/home/grvite/Data/A3301/A3301-190611r'
 # The two dots means we go backward in the folder architecture and then into the data folder
 
@@ -70,25 +74,30 @@ position = loadPosition(data_directory, events, episodes, n_ttl_channels = 1, op
 
 
 from wrappers import loadEpoch
-wake_ep 							= loadEpoch(data_directory, 'wake', episodes)
-#sleep_ep 							= loadEpoch(data_directory, 'sleep')					
+wake_ep                             = loadEpoch(data_directory, 'wake', episodes)
+#sleep_ep                             = loadEpoch(data_directory, 'sleep')                    
 
 
-# Now we are going to compute the tuning curve for all neurons during exploration
-# The process of making a tuning curve has been covered in main3_tuningcurves.py
-# So here we are gonna use the function computeAngularTuningCurves from functions.py 
+#
 from functions import computeAngularTuningCurves
 tuning_curves = computeAngularTuningCurves(spikes, position['ry'], wake_ep, 60)
-
 from functions import smoothAngularTuningCurves
 tuning_curves = smoothAngularTuningCurves(tuning_curves, 10, 2)
 
 #
-figure()
+#Create plots directory
+os.mkdir(data_directory+'/plots')
+#Determine the number of raws
+raws = round(len(spikes)/5)
+
+plt.figure(figsize=(20,100))
 for i, n in enumerate(tuning_curves.columns):
-	subplot(6,9,i+1, projection = 'polar')
-	plot(tuning_curves[n])	
-show()
+    plt.subplot(5,raws,i+1, projection = 'polar')
+    plt.plot(tuning_curves[n], color = 'darkorange')
+    plt.title('Neuron' + ' ' + str(i) , loc ='center')
+plt.subplots_adjust(wspace=0.4, hspace=1, top = 0.9)
+plt.show()
+plt.savefig(data + '/plots')
 
 
 
