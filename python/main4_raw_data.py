@@ -30,14 +30,14 @@ To speed up loading of the data, a folder called /Analysis will be created and s
 So that next time, you load the script, the wrappers will search in /Analysis to load faster
 '''
 
-import numpy as np
-import pandas as pd
-import neuroseries as nts
-from pylab import *
+#import numpy as np
+#import pandas as pd
+#import neuroseries as nts
+#from pylab import *
 
 # first we define a string for the data directory
 # It is usually better to separate the data from the code
-data_directory = '/media/3TBHDD/Data/A3302/A3302-190819/A3302-190819'
+#data_directory = '/media/3TBHDD/Data/A3303/A3303-191014/A3302-191014'
 #data_directory = '/home/grvite/Data/A3301/A3301-190611r'
 # The two dots means we go backward in the folder architecture and then into the data folder
 
@@ -102,7 +102,7 @@ tuning_curves = computeAngularTuningCurves(spikes, position['ry'], wake_ep, 60)
 from pylab import *
 figure()
 for i, n in enumerate(tuning_curves.columns):
-	subplot(5,5,i+1, projection = 'polar')
+	subplot(5,10,i+1, projection = 'polar')
 	plot(tuning_curves[n])	
 show()
 
@@ -114,7 +114,7 @@ tuning_curves = smoothAngularTuningCurves(tuning_curves, 10, 2)
 # and plot it again
 figure()
 for i, n in enumerate(tuning_curves.columns):
-	subplot(6,9,i+1, projection = 'polar')
+	subplot(9,10,i+1, projection = 'polar')
 	plot(tuning_curves[n])	
 show()
 
@@ -128,7 +128,7 @@ from scipy.ndimage import gaussian_filter
 
 figure()
 for i,k in enumerate(GF.keys()):
-    subplot(6,9,i+1)    
+    subplot(9,10,i+1)    
     tmp = gaussian_filter(GF[k].values, sigma = 1)
     imshow(tmp, extent = ext, cmap = 'jet', interpolation = 'bilinear')
     colorbar()
@@ -136,13 +136,11 @@ show()
 
 
 
-autocorrs= compute_AutoCorrs(GF)
-
 from scipy.signal import correlate2d
 
 figure()
 for i,k in enumerate(GF.keys()):
-    subplot(6,9,i+1)
+    subplot(9,10,i+1)
     tmp = gaussian_filter(GF[k].values, sigma = 0.5)
     tmp2 = correlate2d(tmp, tmp)
     imshow(tmp2, extent = ext, cmap = 'jet', interpolation = 'bilinear')
