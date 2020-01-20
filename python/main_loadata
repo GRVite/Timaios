@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 29 10:56:49 2019
+Created on Thu Aug 29 10:56:49 2019-
 
 @author: vite
 
@@ -33,20 +33,17 @@ A. LOAD DATA
 
 rootDir = '/media/3TBHDD/Data'
 ID = 'A4203'
-session = 'A4203-191220'
+session = 'A4203-191221'
+wakepos=0
+events = ['0'] 
+
 data_directory = rootDir + '/' + ID + '/' + session + '/' + session
-if os.path.exists(data_directory+'/plots') ==False:
+if os.path.exists(data_directory+'/plots')==False:
     os.mkdir(data_directory+'/plots')
-
-
-#sum(print(os.path.isdir(i)) for i in os.listdir(rootDir + '/' + ID + '/' + session))
-#len([i for i in os.listdir(rootDir + '/' + ID + '/' + session) if os.path.isdir(i)])
 path =rootDir + '/' + ID + '/' + session
 #count number of sessions
-#ns = int([i for i in os.listdir(path)  if os.path.isdir(path+'/'+i)==True][-1][-1:])
-#episodes = ['wake' if str(i)==events else 'sleep' for i in list(range(3))]
-#define position of wake session
-events = ['0', '1']
+ns = int([i for i in os.listdir(path)  if os.path.isdir(path+'/'+i)==True][-1][-1:])
+episodes = ['wake' if i==wakepos else 'sleep' for i in list(range(ns+1))]
 
 
 files = os.listdir(data_directory) 
@@ -75,57 +72,16 @@ from functions import computeAngularTuningCurves
 tuning_curves = computeAngularTuningCurves(spikes, position['ry'], wake_ep, 60)
 from functions import smoothAngularTuningCurves
 tuning_curves = smoothAngularTuningCurves(tuning_curves, 10, 2)
-
-#
-
 #Determine the number of raws
 raws = round(len(spikes)/5)
-
 plt.figure(figsize=(40,200))
 for i, n in enumerate(tuning_curves.columns):
-    ax=plt.subplot(5,raws,i+1, projection = 'polar')
+    ax=plt.subplot(5,raws+1,i+1, projection = 'polar')
     plt.plot(tuning_curves[n], color = 'darkorange')
     plt.title('Neuron' + ' ' + str(i) , loc ='center', pad=25)
 plt.subplots_adjust(wspace=0.4, hspace=2, top = 0.85)
 plt.show()
 plt.savefig(data_directory + '/plots' + '/HD.pdf')
-
-
-#Opto
-
-ttl_track, ttl_opto = loadTTLPulse2(os.path.join(data_directory, session+'_0_analogin.dat'), 2)
-
-ttl_opto = nts.Ts(ttl_opto.index.values, time_units = 's')
-
-figure()
-plt.plot(ttl_opto.index.values, 'o')
-plt.show()
-
-rasters = {}
-
-for i in spikes:
-    rasters[i] = {}
-    for j,t in enumerate(ttl_opto.index.values):
-        tmp = spikes[i].loc[t-2*1e6:t+3*1e6]
-        tmp.index -= t
-        if len(tmp):
-            rasters[i][j] = tmp.fillna(j)
-    rasters[i] = pd.DataFrame.from_dict(rasters[i])
-
-figure()
-ax = subplot(211)
-tmp = (rasters[0]*0+1).sum(1)
-bin_size = 100000
-bins = np.arange(-2*1e6, 3*1e6+bin_size, bin_size)
-tmp = tmp.groupby(np.digitize(tmp.index.values, bins)).sum()
-count = pd.Series(index = bins[0:-1] + np.diff(bins)/2, data = 0)
-count.iloc[tmp.index.values-1] = tmp.values
-ax2 = subplot(212, sharex = ax)
-plot(rasters[0], 'k.')
-
-
-
-
 
 
 """
@@ -148,7 +104,7 @@ from pylab import *
 from scipy.ndimage import gaussian_filter
 plt. figure(figsize=(40,50))
 for i,k in enumerate(GF.keys()):
-    plt.subplot(5,raws,i+1)    
+    plt.subplot(5,raws+1,i+1)    
     tmp = gaussian_filter(GF[k].values, sigma = 1)
     imshow(tmp, extent = ext, cmap = 'jet', interpolation = 'bilinear')
     plt.colorbar()
@@ -161,7 +117,7 @@ plt.savefig(data_directory + '/plots' + '/GF.pdf')
 from scipy.signal import correlate2d
 plt.figure(figsize=(40,50))
 for i,k in enumerate(GF.keys()):
-    plt.subplot(5,raws,i+1)
+    plt.subplot(5,raws+1,i+1)
     tmp = gaussian_filter(GF[k].values, sigma = .2)
     tmp2 = correlate2d(tmp, tmp)
     imshow(tmp2, extent = ext, cmap = 'jet', interpolation = 'bilinear')
@@ -171,7 +127,7 @@ plt.savefig(data_directory + '/plots' + '/Au.pdf')
 plt.figure(figsize = (15,16))
 #fig.suptitle('Spikes + Path Plot',size=30)
 for i in spikes:
-    ax=subplot(4,5,i+1) #if you have more than 20cells change the numbers in bracket to reflect that
+    ax=subplot(5,raws+1,i+1) #if you have more than 20cells change the numbers in bracket to reflect that
     plt.scatter(position['x'].realign(spikes[i].restrict(wake_ep)),position['z'].realign(spikes[i].restrict(wake_ep)),s=5,c='red',label=str(i))
     legend()
     plt.plot(position['x'].restrict(wake_ep),position['z'].restrict(wake_ep),color='lightgrey', alpha=0.5)  

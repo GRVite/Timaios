@@ -183,10 +183,14 @@ def loadTTLPulse2(file, n_channels = 2, track = 0, opto = 1, fs = 20000):
 
     ch_opto = data[:,opto].astype(np.int32)
     peaks,_ = find_peaks(np.diff(ch_opto), height=30000)
+    trough,_ = find_peaks(np.diff(ch_opto)*-1, height=30000)
     peaks+=1
-    ttl_opto = pd.Series(index = timestep[peaks], data = data[peaks,opto])
+    trough+=1
+    ttl_opto_start = pd.Series(index = timestep[peaks], data = data[peaks,opto])
+    ttl_opto_end = pd.Series(index = timestep[trough], data = data[trough,opto])
 
-    return ttl_track, ttl_opto
+    return ttl_track, ttl_opto_start, ttl_opto_end
+
 def computeAngularTuningCurves(spikes, angle, ep, nb_bins = 180, frequency = 120.0):
     bins             = np.linspace(0, 2*np.pi, nb_bins)
     idx             = bins[0:-1]+np.diff(bins)/2
