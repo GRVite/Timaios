@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import neuroseries as nts
 #from pylab import *
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from functions import *
 from wrappers import *
 from functions import *
