@@ -67,6 +67,20 @@ for n in spikes.keys():
     ax.legend(lista)
     plt.savefig(data_directory + '/plots' + '/tun_baseVSstim_' + str(n) + '.pdf', bbox_inches = 'tight')
     
+#Find the beginning and end of the stimulation
+t, _ = scipy.signal.find_peaks(np.diff(ttl_opto_start.as_units('s').index), height = 40)
+stim_ep = np.sort(np.hstack(([ttl_opto_start.index[0]], ttl_opto_start.index[t], ttl_opto_start.index[t+1], ttl_opto_end.index[-1])))
+stim_ep = stim_ep.reshape(len(stim_ep)//2, 2)
+stim_ep = nts.IntervalSet(start = stim_ep[:,0], end = stim_ep[:,1])
+
+figure()
+plot(ttl_opto_start.index)
+[axhline(stim_ep.loc[i,'start']) for i in stim_ep.index]
+[axhline(stim_ep.loc[i,'end']) for i in stim_ep.index]
+plot(ttl_opto_start.index)
+
+
+
 
 
 #Firing rate
@@ -74,14 +88,31 @@ MFirRate1 = computeMeanFiringRate(spikes, [wake_base],["base"])
 MFirRate2 = computeMeanFiringRate(spikes, [wake_firststim],["stim"])
 MFirRate = pd.concat ([MFirRate1, MFirRate2], axis=1)
 
-
+opto_stim=nts.IntervalSet(start = opto_ep.loc[0,'start'], end=opto_ep.iloc[-1,1])
 
 wake_2ndststim = opto_ep.iloc[1000:2000]
+interval = nts.IntervalSet(start=stim_ep['start'][1], end=stim_ep['end'][1])
+plt.figure()
+plt.eventplot(spikes[7].restrict(interval).index)
+plt.show()
+
+plt.figure()
+plt.eventplot(spikes[7].restrict(opto_stim).index)
+plt.show()
+
+
+fig, (ax1,ax2) = plt.subplots(2, 1, sharex=True)
+ax1.eventplot(spikes[7].restrict(wake_base).index)
+ax2.hist(spikes[7].restrict(wake_base).index, bins = 20)
+plt.show()
 
 
 
-
-
+# Creates two subplots and unpacks the output array immediately
+f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+ax1.plot(x, y)
+ax1.set_title('Sharing Y axis')
+ax2.scatter(x, y)
 
 ### mio
 plt.figure()
