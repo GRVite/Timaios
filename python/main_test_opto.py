@@ -18,7 +18,8 @@ from functions import *
 from functions import computeAngularTuningCurves
 
 #Load data
-rootDir = '/media/3TBHDD/Data'
+#rootDir = '/media/3TBHDD/Data'
+rootDir = '/Users/vite/navigation_system/Data'
 ID = 'A4203'
 session = 'A4203-191221'
 wakepos=0
@@ -43,7 +44,6 @@ ttl_opto_end = nts.Ts(ttl_opto_end.index.values, time_units = 's')
 opto_ep = nts.IntervalSet(start = ttl_opto_start.index.values, end = ttl_opto_end.index.values)
 
 
-
 ### mio
 wake_base = nts.IntervalSet(start = wake_ep.loc[0,'start'], end=wake_ep.loc[0,'start']+ttl_opto_start.index.values[0]-1)
 tuning_curves_base = computeAngularTuningCurves(spikes, position['ry'], wake_base, 60)
@@ -54,7 +54,7 @@ wake_firststim = opto_ep
 tuning_curves_stim = computeAngularTuningCurves(spikes, position['ry'], wake_firststim, 60)
 tuning_curves_stim = smoothAngularTuningCurves(tuning_curves_stim, 10, 2)
 
-#A. Example
+#A. Tuning curves of control vs stimulation
 lista=["Control","Stimulation"]
 for n in spikes.keys():
     figp = plt.figure(figsize=(8,8))
@@ -67,26 +67,66 @@ for n in spikes.keys():
     ax.legend(lista)
     plt.savefig(data_directory + '/plots' + '/tun_baseVSstim_' + str(n) + '.pdf', bbox_inches = 'tight')
     
-#Find the beginning and end of the stimulation
-t, _ = scipy.signal.find_peaks(np.diff(ttl_opto_start.as_units('s').index), height = 40)
-stim_ep = np.sort(np.hstack(([ttl_opto_start.index[0]], ttl_opto_start.index[t], ttl_opto_start.index[t+1], ttl_opto_end.index[-1])))
-stim_ep = stim_ep.reshape(len(stim_ep)//2, 2)
-stim_ep = nts.IntervalSet(start = stim_ep[:,0], end = stim_ep[:,1])
+#Get the time intervals of the stimulation where the neuron was firing in its preferred direction
+angle = position['ry'].realign(ttl_opto_start)
+angle= pd.DataFrame(data=angle.values, index=angle.index.values, columns=['angle'])
+limit_inf=(2*np.pi/8)*6
+limit_sup=(2*np.pi/8)*7
+angle['label']=(angle['angle'] >= limit_inf) & (angle['angle']<= limit_sup)
+angle=angle[angle['label']]
 
-figure()
-plot(ttl_opto_start.index)
-[axhline(stim_ep.loc[i,'start']) for i in stim_ep.index]
-[axhline(stim_ep.loc[i,'end']) for i in stim_ep.index]
-plot(ttl_opto_start.index)
-
-
-
-
+#Use these intervals to restrict the time of the spikes
+neuron = 7
+spikes_list = []
+for i in range(len(angle.index)):
+    print(i)
+    interval = nts.IntervalSet(start=angle.index[i] - 15000 , end=angle.index[i]+ 25000)
+    t = spikes[neuron].restrict(interval).index.values - angle.index[i]
+    spikes_list.append(t)
+lineSize=0.5
+plt.eventplot(spikes_list, linelengths = 30)
 
 #Firing rate
 MFirRate1 = computeMeanFiringRate(spikes, [wake_base],["base"])
 MFirRate2 = computeMeanFiringRate(spikes, [wake_firststim],["stim"])
 MFirRate = pd.concat ([MFirRate1, MFirRate2], axis=1)
+
+
+
+
+"""
+In progress...
+"""
+
+#Find the beginning and end of the stimulation
+t, _ = scipy.signal.find_peaks(np.diff(ttl_opto_start.as_units('s').index), height = 1)
+stim_ep = np.sort(np.hstack(([ttl_opto_start.index[0]], ttl_opto_start.index[t], ttl_opto_start.index[t+1], ttl_opto_end.index[-1])))
+stim_ep = stim_ep.reshape(len(stim_ep)//2, 2)
+stim_ep = nts.IntervalSet(start = stim_ep[:,0], end = stim_ep[:,1])
+figure()
+plot(ttl_opto_start.index)
+[axhline(stim_ep.loc[i,'start']) for i in stim_ep.index]
+[axhline(stim_ep.loc[i,'end']) for i in stim_ep.index]
+plot(ttl_opto_start.index)
+show()
+#Take the first 10 periods of stimulation
+stim_ep.loc[0:9]
+neuron = 7
+spikes_list = []
+for i in range(10):
+    print(i)
+    interval = nts.IntervalSet(start=stim_ep['start'][i] - 2000000 , end=stim_ep['end'][i]+2000000)
+    print(interval)
+    t = spikes[neuron].restrict(interval).index.values - stim_ep['start'][i]
+    spikes_list.append(t)
+    
+    
+fig, (ax1,ax2) = plt.subplots(2, 1, sharex=True)
+ax1.eventplot(spikes[neuron].restrict(interval).as_units('s').index)
+ax2.hist(spikes[neuron].restrict(interval).as_units('s').index, bins = 10)
+plt.show()
+
+
 
 opto_stim=nts.IntervalSet(start = opto_ep.loc[0,'start'], end=opto_ep.iloc[-1,1])
 
@@ -100,19 +140,15 @@ plt.figure()
 plt.eventplot(spikes[7].restrict(opto_stim).index)
 plt.show()
 
-
 fig, (ax1,ax2) = plt.subplots(2, 1, sharex=True)
-ax1.eventplot(spikes[7].restrict(wake_base).index)
-ax2.hist(spikes[7].restrict(wake_base).index, bins = 20)
+ax1.eventplot(spikes[neuron].restrict(wake_base).index)
+ax2.hist(spikes[neuron].restrict(wake_base).index, bins = 20)
 plt.show()
 
 
 
-# Creates two subplots and unpacks the output array immediately
-f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-ax1.plot(x, y)
-ax1.set_title('Sharing Y axis')
-ax2.scatter(x, y)
+
+
 
 ### mio
 plt.figure()
