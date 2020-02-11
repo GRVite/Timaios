@@ -23,6 +23,20 @@ def path_spk_plt(ep,spikes,position):
         plot(position['x'].restrict(ep),position['z'].restrict(ep),color='darkgrey', alpha=0.5)  
     return fig,ax
 
+def smooth_corr(aucorr, nbins, binsize, meanfiring, window = 7, stdv = 5.0, plot = False):
+    aucorr= aucorr-meanfiring
+    dfa = aucorr [0:int(nbins/2)]
+    dfa = pd.DataFrame(dfa).rolling(window = window, win_type='gaussian', center=True, min_periods = 1).mean(std = stdv)
+    dfb = np.flipud(aucorr [int(nbins/2)+1::])
+    dfb = pd.DataFrame(dfb).rolling(window = window, win_type='gaussian', center=True, min_periods = 1).mean(std = stdv)
+    #array = np.append((dfa.values),0)
+    arrayt = np.append(np.append((dfa.values),0), np.flipud(dfb.values))
+    if plot == True: 
+        #Make a Tsd
+        times = np.arange(0, binsize*(nbins+1), binsize) - (nbins*binsize)/2
+        ndf = nts.Tsd(t = times, d = arrayt/meanfiring)
+        ndf.plot()
+    return arrayt
 #########################################################
 # CORRELATION
 #########################################################

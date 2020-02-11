@@ -55,6 +55,25 @@ tuning_curves_stim = computeAngularTuningCurves(spikes, position['ry'], wake_fir
 tuning_curves_stim = smoothAngularTuningCurves(tuning_curves_stim, 10, 2)
 
 #A. Tuning curves of control vs stimulation
+#Subplot
+
+lista=["Control","Stimulation"]
+plt.figure(figsize=[20,10])
+for i, n in enumerate (spikes.keys()):
+    ax = plt.subplot(2,5,i+1, projection='polar')
+    ax.plot(tuning_curves_base[n], color ='black')
+    #ax.fill(tuning_curves_base[n],"black", alpha = 0.15) 
+    ax.plot(tuning_curves_stim[n], color ='lime')
+    #ax.fill(tuning_curves_stim[n],"lime", alpha = 0.15) 
+    ax.set_title("Neuron_" + str(n))
+#    ax.legend(lista)
+plt.tight_layout()
+plt.savefig(data_directory + '/plots' + '/tun_baseVSstim_tot'  + '.pdf', bbox_inches = 'tight')
+    
+
+#Individual
+
+
 lista=["Control","Stimulation"]
 for n in spikes.keys():
     figp = plt.figure(figsize=(8,8))
