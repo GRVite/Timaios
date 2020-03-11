@@ -29,8 +29,8 @@ if os.path.exists(data_directory+'/plots')==False:
     os.mkdir(data_directory+'/plots')
 path =rootDir + '/' + ID + '/' + session
 #count number of sessions
-ns = int([i for i in os.listdir(path)  if os.path.isdir(path+'/'+i)==True][-1][-1:])
-episodes = ['wake' if i==wakepos else 'sleep' for i in list(range(ns+1))]
+ns = int([i for i in os.listdir(path)  if os.path.isdir(path+'/'+i)==True][0][-1:])
+episodes = ['wake' if i==wakepos else 'sleep' for i in list(range(ns))]
 
 spikes, shank = loadSpikeData(data_directory)
 n_channels, fs, shank_to_channel = loadXML(data_directory)
@@ -44,10 +44,12 @@ ttl_opto_end = nts.Ts(ttl_opto_end.index.values, time_units = 's')
 opto_ep = nts.IntervalSet(start = ttl_opto_start.index.values, end = ttl_opto_end.index.values)
 
 
+
 ### mio
 wake_base = nts.IntervalSet(start = wake_ep.loc[0,'start'], end=wake_ep.loc[0,'start']+ttl_opto_start.index.values[0]-1)
 tuning_curves_base = computeAngularTuningCurves(spikes, position['ry'], wake_base, 60)
 tuning_curves_base = smoothAngularTuningCurves(tuning_curves_base, 10, 2)
+
 
 #wake_firststim = nts.IntervalSet(start = wake_ep.loc[0,'start']+ttl_opto_start.index[0], end=wake_ep.loc[0,'start']+ttl_opto_start.index[999])
 wake_firststim = opto_ep
@@ -56,7 +58,6 @@ tuning_curves_stim = smoothAngularTuningCurves(tuning_curves_stim, 10, 2)
 
 #A. Tuning curves of control vs stimulation
 #Subplot
-
 lista=["Control","Stimulation"]
 plt.figure(figsize=[20,10])
 for i, n in enumerate (spikes.keys()):
@@ -69,12 +70,19 @@ for i, n in enumerate (spikes.keys()):
 #    ax.legend(lista)
 plt.tight_layout()
 plt.savefig(data_directory + '/plots' + '/tun_baseVSstim_tot'  + '.pdf', bbox_inches = 'tight')
-    
 
 #Individual
+neuron=7
+plt.figure(figsize=(8,8))
+plt.polar(tuning_curves_base[neuron], color ='black')
+#ax.fill(tuning_curves_base[n],"black", alpha = 0.15) 
+plt.polar(tuning_curves_stim[neuron], color ='lime')
+#ax.fill(tuning_curves_stim[n],"lime", alpha = 0.15) 
+plt.title("Neuron_" + str(neuron))
+plt.legend(lista)
+plt.savefig(data_directory + '/plots' + '/tun_baseVSstim_' + str(n) + '.pdf', bbox_inches = 'tight') 
 
-
-lista=["Control","Stimulation"]
+#All
 for n in spikes.keys():
     figp = plt.figure(figsize=(8,8))
     ax = figp.add_subplot(111, projection='polar')
@@ -85,7 +93,8 @@ for n in spikes.keys():
     ax.set_title("Neuron_" + str(n))
     ax.legend(lista)
     plt.savefig(data_directory + '/plots' + '/tun_baseVSstim_' + str(n) + '.pdf', bbox_inches = 'tight')
-    
+
+
 #Get the time intervals of the stimulation where the neuron was firing in its preferred direction
 angle = position['ry'].realign(ttl_opto_start)
 angle= pd.DataFrame(data=angle.values, index=angle.index.values, columns=['angle'])
@@ -98,12 +107,19 @@ angle=angle[angle['label']]
 neuron = 7
 spikes_list = []
 for i in range(len(angle.index)):
-    print(i)
-    interval = nts.IntervalSet(start=angle.index[i] - 15000 , end=angle.index[i]+ 25000)
-    t = spikes[neuron].restrict(interval).index.values - angle.index[i]
+    interval = nts.IntervalSet(start=angle.index[i] - 15000 , end=angle.index[i]+ 70000)
+    t = spikes[neuron].restrict(interval).index.values - angle.index[i]*1
     spikes_list.append(t)
 lineSize=0.5
-plt.eventplot(spikes_list, linelengths = 30)
+left, bottom, width, height = (0, 0, 10000, len(angle.index))
+rect = plt.Rectangle((left, bottom), width, height, facecolor="limegreen", alpha=0.1)
+fig, ax = plt.subplots()
+ax.add_patch(rect)
+ax.eventplot(spikes_list, linelengths = 30, color='black')
+ax.set_ylabel('Trials')
+ax.set_xlabel('Time (us)')
+ax.legend(["Period of stimulation"])
+ax.set_title("Raster plot for all the trials")
 
 #Firing rate
 MFirRate1 = computeMeanFiringRate(spikes, [wake_base],["base"])

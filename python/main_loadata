@@ -103,11 +103,13 @@ from scipy.ndimage import gaussian_filter
 plt. figure(figsize=(50,60))
 for i,k in enumerate(GF.keys()):
     plt.subplot(5,raws+1,i+1)    
-    tmp = gaussian_filter(GF[k].values, sigma = 1)
+    tmp = gaussian_filter(GF[k].values, sigma = 1.3)
     im=imshow(tmp, extent = ext, cmap = 'jet', interpolation = 'bilinear')
     #plt.colorbar(im,fraction=0.046, pad=0.04)
     plt.title(str([i]))
+    plt.xticks([]),plt.yticks([])
 plt.show()
+plt.suptitle('Place fields ' + session)
 plt.savefig(data_directory + '/plots' + '/GF.pdf')
 
 selection = [0,7,14,15,16,17,22,35]
