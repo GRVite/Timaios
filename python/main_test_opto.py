@@ -46,7 +46,7 @@ opto_ep = nts.IntervalSet(start = ttl_opto_start.index.values, end = ttl_opto_en
 
 
 ### mio
-wake_base = nts.IntervalSet(start = wake_ep.loc[0,'start'], end=wake_ep.loc[0,'start']+ttl_opto_start.index.values[0]-1)
+wake_base = nts.IntervalSet(start = wake_ep.loc[0,'start'], end=wake_ep.loc[0,'start']+10*60*1000*1000-1)
 tuning_curves_base = computeAngularTuningCurves(spikes, position['ry'], wake_base, 60)
 tuning_curves_base = smoothAngularTuningCurves(tuning_curves_base, 10, 2)
 
@@ -98,20 +98,20 @@ for n in spikes.keys():
 #Get the time intervals of the stimulation where the neuron was firing in its preferred direction
 angle = position['ry'].realign(ttl_opto_start)
 angle= pd.DataFrame(data=angle.values, index=angle.index.values, columns=['angle'])
-limit_inf=(2*np.pi/8)*6
-limit_sup=(2*np.pi/8)*7
+limit_inf=(2*np.pi/8)*1
+limit_sup=(2*np.pi/8)*7.5
 angle['label']=(angle['angle'] >= limit_inf) & (angle['angle']<= limit_sup)
 angle=angle[angle['label']]
 
 #Use these intervals to restrict the time of the spikes
-neuron = 7
+neuron = 8
 spikes_list = []
 for i in range(len(angle.index)):
-    interval = nts.IntervalSet(start=angle.index[i] - 15000 , end=angle.index[i]+ 70000)
+    interval = nts.IntervalSet(start=angle.index[i] - 1500000 , end=angle.index[i]+ 2000000)
     t = spikes[neuron].restrict(interval).index.values - angle.index[i]*1
     spikes_list.append(t)
 lineSize=0.5
-left, bottom, width, height = (0, 0, 10000, len(angle.index))
+left, bottom, width, height = (0, 0, 5000, len(angle.index))
 rect = plt.Rectangle((left, bottom), width, height, facecolor="limegreen", alpha=0.1)
 fig, ax = plt.subplots()
 ax.add_patch(rect)

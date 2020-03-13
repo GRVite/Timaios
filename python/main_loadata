@@ -29,10 +29,10 @@ from functions import *
 A. LOAD DATA
 """
 
-#rootDir = '/media/3TBHDD/Data'
-rootDir = '/Users/vite/navigation_system/Data'
-ID = 'A3304'
-session = 'A3304-191127'
+rootDir = '/media/3TBHDD/Data'
+#rootDir = '/Users/vite/navigation_system/Data'
+ID = 'A4405'
+session = 'A4405-200311'
 wakepos=0
 events = ['0'] 
 

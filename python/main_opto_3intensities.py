@@ -14,14 +14,13 @@ import neuroseries as nts
 #import matplotlib.pyplot as plt
 from functions import *
 from wrappers import *
-from functions import *
 from functions import computeAngularTuningCurves
 
 #Load data
-#rootDir = '/media/3TBHDD/Data'
-rootDir = '/Users/vite/navigation_system/Data'
-ID = 'A4203'
-session = 'A4203-191221'
+rootDir = '/media/3TBHDD/Data'
+#rootDir = '/Users/vite/navigation_system/Data'
+ID = 'A4405'
+session = 'A4405-200311'
 wakepos=0
 events = ['0'] 
 data_directory = rootDir + '/' + ID + '/' + session + '/' + session
@@ -50,8 +49,42 @@ duration = 1 #in min
 sfreq = ((duration*1000*1000)/(stim+delay))
 intensities = ['low','med','high']
 
+#Find the beginning and end of the stimulation
+t, _ = scipy.signal.find_peaks(np.diff(ttl_opto_start.as_units('s').index), height = 1)
+stim_ep = np.sort(np.hstack(([ttl_opto_start.index[0]], ttl_opto_start.index[t], ttl_opto_start.index[t+1], ttl_opto_end.index[-1])))
+stim_ep = stim_ep.reshape(len(stim_ep)//2, 2)
+stim_ep = nts.IntervalSet(start = stim_ep[:,0], end = stim_ep[:,1])
+figure()
+plot(ttl_opto_start.index)
+[axhline(stim_ep.loc[i,'start']) for i in stim_ep.index]
+[axhline(stim_ep.loc[i,'end']) for i in stim_ep.index]
+plot(ttl_opto_start.index, 'o')
+show()
+
+high_ep=stim_ep.loc[[0]]
+#Take the first 10 periods of stimulation
+
+neuron = 8
+spikes_list = []
+span=2000000
+for i in ttl_opto_start.restrict(high_ep).index.values:
+    interval = nts.IntervalSet(start=i - span , end=i+span)
+    print(interval)
+    t = spikes[neuron].restrict(interval).index.values - i
+    spikes_list.append(t)
+lineSize=0.5
+left, bottom, width, height = (0, 0, 5000, len(angle.index))
+rect = plt.Rectangle((left, bottom), width, height, facecolor="limegreen", alpha=0.1)
+fig, ax = plt.subplots()
+ax.add_patch(rect)
+ax.eventplot(spikes_list, linelengths = 30, color='black')
+ax.set_ylabel('Trials')
+ax.set_xlabel('Time (us)')
+ax.legend(["Period of stimulation"])
+ax.set_title("Raster plot for all the trials")
+ 
 #Tuning curves from baseline activity
-wake_base = nts.IntervalSet(start = wake_ep.loc[0,'start'], end=wake_ep.loc[0,'start']+ttl_opto_start.index.values[0]-1)
+wake_base = nts.IntervalSet(start = wake_ep.loc[0,'start'], end=wake_ep.loc[0,'start']+ttl_opto_start.index.values[0]-1000000)
 tuning_curves_base = computeAngularTuningCurves(spikes, position['ry'], wake_base, 60)
 tuning_curves_base = smoothAngularTuningCurves(tuning_curves_base, 10, 2)
 

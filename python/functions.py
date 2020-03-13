@@ -196,8 +196,8 @@ def loadTTLPulse2(file, n_channels = 2, track = 0, opto = 1, fs = 20000):
     ttl_track = pd.Series(index = timestep[peaks], data = data[peaks,track])    
 
     ch_opto = data[:,opto].astype(np.int32)
-    peaks,_ = find_peaks(np.diff(ch_opto), height=30000)
-    trough,_ = find_peaks(np.diff(ch_opto)*-1, height=30000)
+    peaks,_ = find_peaks(np.diff(ch_opto), height=5000)
+    trough,_ = find_peaks(np.diff(ch_opto)*-1, height=5000)
     peaks+=1
     trough+=1
     ttl_opto_start = pd.Series(index = timestep[peaks], data = data[peaks,opto])
