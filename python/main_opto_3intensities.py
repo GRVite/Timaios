@@ -17,10 +17,10 @@ from wrappers import *
 from functions import computeAngularTuningCurves
 
 #Load data
-rootDir = '/media/3TBHDD/Data'
-#rootDir = '/Users/vite/navigation_system/Data'
+#rootDir = '/media/3TBHDD/Data'
+rootDir = '/Users/vite/navigation_system/Data'
 ID = 'A4405'
-session = 'A4405-200311'
+session = 'A4405-200312'
 wakepos=0
 events = ['0'] 
 data_directory = rootDir + '/' + ID + '/' + session + '/' + session
@@ -63,17 +63,20 @@ show()
 
 high_ep=stim_ep.loc[[0]]
 #Take the first 10 periods of stimulation
+spikes_a=np.asarray(spikes_list)
+pd.DataFrame(columns=spikes.keys())
 
-neuron = 8
+neuron = i
 spikes_list = []
-span=2000000
+span=20000
 for i in ttl_opto_start.restrict(high_ep).index.values:
     interval = nts.IntervalSet(start=i - span , end=i+span)
     print(interval)
     t = spikes[neuron].restrict(interval).index.values - i
     spikes_list.append(t)
+    
 lineSize=0.5
-left, bottom, width, height = (0, 0, 5000, len(angle.index))
+left, bottom, width, height = (0, 0, 5000, len(ttl_opto_start.restrict(high_ep)))
 rect = plt.Rectangle((left, bottom), width, height, facecolor="limegreen", alpha=0.1)
 fig, ax = plt.subplots()
 ax.add_patch(rect)
