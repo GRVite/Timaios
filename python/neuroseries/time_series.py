@@ -193,10 +193,6 @@ class Tsd(pd.Series):
         self.nts_class = self.__class__.__name__
         self.r_cache = None
 
-
-    def totlength(self):
-        return self.end_time()-self.start_time()
-        
     def times(self, units=None):
         """
         The times of the Tsd, returned as np.double in the desired time units
@@ -452,7 +448,7 @@ class TsdFrame(pd.DataFrame):
 
     def end_time(self, units='us'):
         return self.times(units=units)[-1]
-        
+
     @property
     def _constructor(self):
         return TsdFrame
@@ -480,7 +476,8 @@ class Ts(Tsd):
     def __init__(self, t, time_units=None, **kwargs):
         super().__init__(t, None, time_units=time_units, **kwargs)
         self.nts_class = self.__class__.__name__
-    
+
+
 def gaps_func(data, min_gap, method='absolute'):
     """
     finds gaps in a tsd
