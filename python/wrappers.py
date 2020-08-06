@@ -92,14 +92,15 @@ def loadSpikeData(path, index=None, fs = 20000):
                 shank.append(int(clu_files[i].split(".")[-1]))
             count += len(idx_clu)
        
-    # Saving SpikeData.h5
-    final_path = os.path.join(new_path, 'SpikeData.h5')
-    store = pd.HDFStore(final_path, 'w')
-    for n in neurons:
-        store.append('neuron_'+str(n), neurons[n])
-    store.append('neurons_id', pd.Series(np.array(list(neurons.keys()))))
-    store.append('shanks', pd.Series(shank))
-    store.close()
+    # # Saving SpikeData.h5
+    # final_path = os.path.join(new_path, 'SpikeData.h5')
+    # store = pd.HDFStore(final_path, 'w')
+    # store.close()
+    # for n in neurons:
+    #     store.append('neuron_'+str(n), neurons[n])
+    # store.append('neurons_id', pd.Series(np.array(list(neurons.keys()))))
+    # store.append('shanks', pd.Series(shank))
+    # store.close()
 
 
     # Returning a dictionnary

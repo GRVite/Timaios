@@ -325,6 +325,22 @@ def computeOccupancy(position_tsd, nb_bins = 100):
     occupancy, _, _ = np.histogram2d(ypos, xpos, [ybins,xbins])
     return occupancy
 
+def refineSleepFromAccel(acceleration, sleep_ep):
+	vl = acceleration[0].restrict(sleep_ep)
+	vl = vl.as_series().diff().abs().dropna()	
+	a, _ = scipy.signal.find_peaks(vl, 0.025)
+	peaks = nts.Tsd(vl.iloc[a])
+	duration = np.diff(peaks.as_units('s').index.values)
+	interval = nts.IntervalSet(start = peaks.index.values[0:-1], end = peaks.index.values[1:])
+
+	newsleep_ep = interval.iloc[duration>15.0]
+	newsleep_ep = newsleep_ep.reset_index(drop=True)
+	newsleep_ep = newsleep_ep.merge_close_intervals(100000, time_units ='us')
+
+	newsleep_ep	= sleep_ep.intersect(newsleep_ep)
+
+	return newsleep_ep
+
 def smoothAngularTuningCurves(tuning_curves, window = 20, deviation = 3.0):
     for i in tuning_curves.columns:
         tcurves = tuning_curves[i]

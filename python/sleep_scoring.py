@@ -14,16 +14,16 @@ from wrappers import *
 from functions import *
 import sys
 
-data_directory 	= '/mnt/DataGuillaume/LMN/A1407'
-info 			= pd.read_csv(os.path.join(data_directory,'A1407.csv'), index_col = 0)
-sessions 		= info.loc['A1407-190403':].index.values
+data_directory 	= '/Volumes/LaCie/Timaios/A3304/'
+info 			= pd.read_csv(os.path.join(data_directory,'A3304.csv'), index_col = 0)
+sessions 		= info.loc['A3304-191130':].index.values
 
 
 for s in sessions:
 	print(s)
 	path 			= os.path.join(data_directory, s)
-	episodes 		= info.filter(like='Trial').loc[s].dropna().values
-	events			= list(np.where(episodes == 'wake')[0].astype('str'))
+	episodes 		= ['sleep', 'wake', 'sleep']
+	events			= ['1']
 	spikes, shank 	= loadSpikeData(path)
 	n_channels, fs, shank_to_channel 	= loadXML(path)
 	position		= loadPosition(path, events, episodes)

@@ -24,6 +24,8 @@ import neuroseries as nts
 #from pylab import *
 import matplotlib.pyplot as plt
 from functions import *
+from scipy.ndimage import gaussian_filter
+from scipy.signal import correlate2d
 
 """
 A. LOAD DATA
@@ -93,14 +95,15 @@ plt.subplots_adjust(wspace=0.4, hspace=1, top = 1.3)
 plt.show()
 """
 
+"""
+GENERAL
+"""
+
 ###
 #Place fields
 ###
-from functions import *
 GF, ext = computePlaceFields(spikes, position[['x', 'z']], wake_ep, 30)
-from pylab import *
-from scipy.ndimage import gaussian_filter
-plt. figure(figsize=(50,60))
+plt.figure(figsize=(50,60))
 for i,k in enumerate(GF.keys()):
     plt.subplot(5,raws+1,i+1)    
     tmp = gaussian_filter(GF[k].values, sigma = 1.3)
@@ -112,11 +115,11 @@ plt.show()
 plt.suptitle('Place fields ' + session)
 plt.savefig(data_directory + '/plots' + '/GF.png')
 
-selection = [0,7,14,15,16,17,22,35]
+selection = [2,3,4,6,7,16,17, 25]
 plt. figure(figsize=(50,60))
 for i,k in enumerate(selection):
     plt.subplot(3,4,i+1)    
-    tmp = gaussian_filter(GF[k].values, sigma = 1.3)
+    tmp = gaussian_filter(GF[k].values, sigma = 1)
     im=imshow(tmp, extent = ext, cmap = 'jet', interpolation = 'bilinear')
     #plt.colorbar(im,fraction=0.046, pad=0.04)
     plt.title(str(k))
@@ -126,22 +129,40 @@ plt.savefig(data_directory + '/plots' + '/GF_selected.pdf')
 ###
 #Autocorrelograms
 ###
-from scipy.signal import correlate2d
 plt.figure(figsize=(40,50))
 for i,k in enumerate(GF.keys()):
     plt.subplot(5,raws+1,i+1)
-    tmp = gaussian_filter(GF[k].values, sigma = .2)
+    tmp = gaussian_filter(GF[k].values, sigma = 0.2)
     tmp2 = correlate2d(tmp, tmp)
     imshow(tmp2, extent = ext, cmap = 'jet', interpolation = 'bilinear')
     plt.title(str([i]))
 plt.savefig(data_directory + '/plots' + '/Au.pdf')
+
+#Test rotate
+from scipy import ndimage, misc
+ndimage.rotate(tmp2, 45, reshape=True)
+
+plt.figure(figsize=(4,5))
+tmp = gaussian_filter(GF[2].values, sigma = 0.35)
+tmp2 = correlate2d(tmp, tmp)
+imshow(tmp2, cmap = 'jet', interpolation = 'bilinear')
+plt.colorbar(im,fraction=0.046, pad=0.04)
+plt.title(str([i]))
+plt.scatter(peaks[1:,0],peaks[1:,1], marker="*",c='black')
+plt.plot([29,39])
+
+#test identify peaks
+from skimage.feature import peak_local_max
+peaks = peak_local_max(tmp2, num_peaks = 7)
+
 
 #Spike maps
 plt.figure(figsize = (15,16))
 #fig.subtitle('Spikes + Path Plot',size=30)
 for i,k in enumerate(selection):
     ax=subplot(3,4,i+1) #if you have more than 20cells change the numbers in bracket to reflect that
-    plt.scatter(position['x'].realign(spikes[k].restrict(wake_ep)),position['z'].realign(spikes[k].restrict(wake_ep)),s=5,c='red',label=str(k))
+    plt.scatter(position['x'].realign(spikes[k].restrict(wake_ep)),position['z']
+                .realign(spikes[k].restrict(wake_ep)),s=5,c='steelblue',label=str(k))
     legend()
     plt.plot(position['x'].restrict(wake_ep),position['z'].restrict(wake_ep),color='lightgrey', alpha=0.5)  
 
@@ -150,8 +171,8 @@ for i,k in enumerate(selection):
 Place fields of the first x minutes of activity for a given neuron
 """
 #Select a neuron
-n=selection[1]
-minutes=10
+n=selection[0]
+minutes=15
 start = spikes[n].start_time()
 end = spikes[n].start_time()+ minutes* 60000000
 interval = nts.IntervalSet(start = start, end = end)
@@ -240,7 +261,44 @@ plt.tight_layout()
 plt.suptitle("Comparisson ", x = 0.5, y = 1)
 plt.savefig(data_directory + '/plots' + '/Comparisson.pdf')
 
-#Create a Tsd from DatFrame
-nts.TsdFrame
 
 
+"""
+Summary figure for one neuron 
+"""
+#Select a neuron
+n=selection[0]
+plt. figure(figsize=(10,30))
+
+ax1=subplot(2,2,1)
+ax1.set_axis_off()
+plt.plot(position['x'], position['z'], c='steelblue',)
+plt.title("A", loc ='left',fontsize=25)
+plt.box(False)
+
+ax2=subplot(2,2,2)
+ax2.invert_yaxis()  
+ax2.set_axis_off()
+tmp = gaussian_filter(GF[n].values, sigma = 1.1)
+im=imshow(tmp, extent = ext, cmap = 'jet', interpolation = 'bilinear')
+plt.title("B", loc ='left',fontsize=25)
+# plt.colorbar(im,fraction=0.046, pad=0.04)
+plt.box(False)
+            
+ax3=subplot(2,2,3)
+ax3.set_axis_off()
+plt.scatter(position['x'].realign(spikes[2].restrict(wake_ep)),position['z'].
+            realign(spikes[2].restrict(wake_ep)), s=5, c='steelblue', label=str(n))
+plt.plot(position['x'].restrict(wake_ep),position['z'].restrict(wake_ep),color='lightgrey', alpha=0.5)  
+plt.title("C", loc ='left',fontsize=25)
+plt.box(False)
+
+ax4=subplot(2,2,4)
+tmp = gaussian_filter(GF[n].values, sigma = 0.2)
+tmp2 = correlate2d(tmp, tmp)
+imshow(tmp2, extent = ext, cmap = 'jet', interpolation = 'bilinear')
+ax4.set_axis_off()
+plt.box(False)
+plt.title("D", loc ='left',fontsize=25)
+
+plt.savefig(data_directory + '/plots' + '/figure_proposal_n' + str(n) + '.pdf')
