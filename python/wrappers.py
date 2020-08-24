@@ -151,7 +151,7 @@ def loadXML(path):
         shank_to_channel[i] = np.sort([int(child.firstChild.data) for child in groups[i].getElementsByTagName('channel')])
     return int(nChannels), int(fs), shank_to_channel
 
-def downsampleDatFile(path, n_channels, fs):
+def downsampleDatFile(path, n_channels = 32, fs = 20000):
     """
     downsample .dat file to .eeg 1/16 (20000 -> 1250 Hz)
     
@@ -173,6 +173,7 @@ def downsampleDatFile(path, n_channels, fs):
     if not len(datfile):
         print("Folder contains no xml files; Exiting ...")
         sys.exit()
+
     new_path = os.path.join(path, datfile[0])
 
     f             = open(new_path, 'rb')
@@ -183,11 +184,12 @@ def downsampleDatFile(path, n_channels, fs):
     duration     = n_samples/fs
     f.close()
 
-    chunksize     = 100000
-    eeg         = np.zeros((int(n_samples/16),n_channels))
+    chunksize     = 100000000
+    eeg         = np.zeros((int(n_samples/16),n_channels), dtype = np.int16)
 
-    for n in range(n_channels):        
-        # Loading
+    for n in range(n_channels):
+        print("Ch ", n)
+        # Loading        
         rawchannel = np.zeros(n_samples, np.int16)
         count = 0
         while count < n_samples:
@@ -200,15 +202,51 @@ def downsampleDatFile(path, n_channels, fs):
             rawchannel[count:count+np.minimum(chunksize, n_samples-count)] = np.copy(block[:,n])
             count         += chunksize
         # Downsampling        
-        eeg[:,n]     = scipy.signal.resample_poly(rawchannel, 1, 16)
-        del rawchannel        
+        eeg[:,n]     = scipy.signal.resample_poly(rawchannel, 1, 16).astype(np.int16)
+        del rawchannel
     
     # Saving
-    eeg_path     = os.path.join(path, os.path.splitext(datfile[0])[0]+'.eeg')
+    eeg_path     = path+'dat'+'.eeg'
     with open(eeg_path, 'wb') as f:
-        eeg.astype('int16').tofile(f)
-        
+        eeg.tofile(f)
+    
     return
+    # new_path = os.path.join(path, datfile[0])
+
+    # f             = open(new_path, 'rb')
+    # startoffile = f.seek(0, 0)
+    # endoffile     = f.seek(0, 2)
+    # bytes_size     = 2
+    # n_samples     = int((endoffile-startoffile)/n_channels/bytes_size)
+    # duration     = n_samples/fs
+    # f.close()
+
+    # chunksize     = 100000
+    # eeg         = np.zeros((int(n_samples/16),n_channels))
+
+    # for n in range(n_channels):        
+    #     # Loading
+    #     rawchannel = np.zeros(n_samples, np.int16)
+    #     count = 0
+    #     while count < n_samples:
+    #         f             = open(new_path, 'rb')
+    #         seekstart     = count*n_channels*bytes_size
+    #         f.seek(seekstart)
+    #         block         = np.fromfile(f, np.int16, n_channels*np.minimum(chunksize, n_samples-count))
+    #         f.close()
+    #         block         = block.reshape(np.minimum(chunksize, n_samples-count), n_channels)
+    #         rawchannel[count:count+np.minimum(chunksize, n_samples-count)] = np.copy(block[:,n])
+    #         count         += chunksize
+    #     # Downsampling        
+    #     eeg[:,n]     = scipy.signal.resample_poly(rawchannel, 1, 16)
+    #     del rawchannel        
+    
+    # # Saving
+    # eeg_path     = os.path.join(path, os.path.splitext(datfile[0])[0]+'.eeg')
+    # with open(eeg_path, 'wb') as f:
+    #     eeg.astype('int16').tofile(f)
+        
+    # return
 
 def makeEpochs(path, order, file = None, start=None, end = None, time_units = 's'):
     """
@@ -492,57 +530,64 @@ def loadTTLPulse(file, n_ttl_channels = 1, optitrack_ch = None, fs = 20000):
     ttl = pd.Series(index = timestep[peaks], data = data[peaks])    
     return ttl
 
-def loadAuxiliary(path, fs = 20000):
-    """
-    Extract the acceleration from the auxiliary.dat for each epochs
+def loadAuxiliary(path, n_probe = 1, fs = 20000):
+	"""
+	Extract the acceleration from the auxiliary.dat for each epochs
+	Downsampled at 100 Hz
+	Args:
+		path: string
+		epochs_ids: list        
+	Return: 
+		TsdArray
+	""" 	
+	if not os.path.exists(path):
+		print("The path "+path+" doesn't exist; Exiting ...")
+		sys.exit()
+	if 'Acceleration.h5' in os.listdir(os.path.join(path, 'Analysis')):
+		accel_file = os.path.join(path, 'Analysis', 'Acceleration.h5')
+		store = pd.HDFStore(accel_file, 'r')
+		accel = store['acceleration'] 
+		store.close()
+		accel = nts.TsdFrame(t = accel.index.values*1e6, d = accel.values) 
+		return accel
+	else:
+		aux_files = np.sort([f for f in os.listdir(path) if 'auxiliary' in f])
+		if len(aux_files)==0:
+			print("Could not find "+f+'_auxiliary.dat; Exiting ...')
+			sys.exit()
 
-    Args:
-        path: string
-        epochs_ids: list        
-    Return: 
-        TsdArray
-    """     
-    if not os.path.exists(path):
-        print("The path "+path+" doesn't exist; Exiting ...")
-        sys.exit()
-    if 'Acceleration.h5' in os.listdir(os.path.join(path, 'Analysis')):
-        accel_file = os.path.join(path, 'Analysis', 'Acceleration.h5')
-        store = pd.HDFStore(accel_file, 'r')
-        accel = store['acceleration'] 
-        store.close()
-        return accel
-    else:
-        aux_files = np.sort([f for f in os.listdir(path) if 'auxiliary' in f])
-        if len(aux_files)==0:
-            print("Could not find "+f+'_auxiliary.dat; Exiting ...')
-            sys.exit()
-        accel = []
-        sample_size = []
-        for i, f in enumerate(aux_files):
-            new_path     = os.path.join(path, f)
-            f             = open(new_path, 'rb')
-            startoffile = f.seek(0, 0)
-            endoffile     = f.seek(0, 2)
-            bytes_size     = 2
-            n_samples     = int((endoffile-startoffile)/3/bytes_size)
-            duration     = n_samples/fs        
-            f.close()
-            tmp         = np.fromfile(open(new_path, 'rb'), np.uint16).reshape(n_samples,3)
-            accel.append(tmp)
-            sample_size.append(n_samples)
+		accel = []
+		sample_size = []
+		for i, f in enumerate(aux_files):
+			new_path 	= os.path.join(path, f)
+			f 			= open(new_path, 'rb')
+			startoffile = f.seek(0, 0)
+			endoffile 	= f.seek(0, 2)
+			bytes_size 	= 2
+			n_samples 	= int((endoffile-startoffile)/(3*n_probe)/bytes_size)
+			duration 	= n_samples/fs		
+			f.close()
+			tmp 		= np.fromfile(open(new_path, 'rb'), np.uint16).reshape(n_samples,3*n_probe)
+			accel.append(tmp)
+			sample_size.append(n_samples)
+			del tmp
 
-        accel = np.concatenate(accel)    
-        factor = 37.4e-6
-        # timestep = np.arange(0, len(accel))/fs
-        # accel = pd.DataFrame(index = timestep, data= accel*37.4e-6)
-        tmp = scipy.signal.resample_poly(accel*factor, 1, 16)
-        timestep = np.arange(0, len(tmp))/(fs/16)
-        tmp = pd.DataFrame(index = timestep, data = tmp)
-        accel_file = os.path.join(path, 'Analysis', 'Acceleration.h5')
-        store = pd.HDFStore(accel_file, 'w')
-        store['acceleration'] = tmp
-        store.close()
-        return tmp
+		accel = np.concatenate(accel)	
+		factor = 37.4e-6
+		# timestep = np.arange(0, len(accel))/fs
+		# accel = pd.DataFrame(index = timestep, data= accel*37.4e-6)
+		tmp  = []
+		for i in range(accel.shape[1]):
+			tmp.append(scipy.signal.resample_poly(accel[:,i]*factor, 1, 100))
+		tmp = np.vstack(tmp).T
+		timestep = np.arange(0, len(tmp))/(fs/100)
+		tmp = pd.DataFrame(index = timestep, data = tmp)
+		accel_file = os.path.join(path, 'Analysis', 'Acceleration.h5')
+		store = pd.HDFStore(accel_file, 'w')
+		store['acceleration'] = tmp
+		store.close()
+		accel = nts.TsdFrame(t = tmp.index.values*1e6, d = tmp.values) 
+		return accel
 
 
 ##########################################################################################################

@@ -325,21 +325,70 @@ def computeOccupancy(position_tsd, nb_bins = 100):
     occupancy, _, _ = np.histogram2d(ypos, xpos, [ybins,xbins])
     return occupancy
 
+def downsample(tsd, up, down):
+    import scipy.signal
+    import neuroseries as nts
+    dtsd = scipy.signal.resample_poly(tsd.values, up, down)
+    dt = tsd.as_units('s').index.values[np.arange(0, tsd.shape[0], down)]
+    if len(tsd.shape) == 1:        
+        return nts.Tsd(dt, dtsd, time_units = 's')
+    elif len(tsd.shape) == 2:
+        return nts.TsdFrame(dt, dtsd, time_units = 's', columns = list(tsd.columns))
+    
+def getPhase(lfp, fmin, fmax, nbins, fsamp, power = False):
+    """ Continuous Wavelets Transform
+        return phase of lfp in a Tsd array
+    """
+    import neuroseries as nts
+    from Wavelets import MyMorlet as Morlet
+    if isinstance(lfp, nts.time_series.TsdFrame):
+        allphase         = nts.TsdFrame(lfp.index.values, np.zeros(lfp.shape))
+        allpwr             = nts.TsdFrame(lfp.index.values, np.zeros(lfp.shape))
+        for i in lfp.keys():
+            allphase[i], allpwr[i] = getPhase(lfp[i], fmin, fmax, nbins, fsamp, power = True)
+        if power:
+            return allphase, allpwr
+        else:
+            return allphase            
+
+    elif isinstance(lfp, nts.time_series.Tsd):
+        cw                 = Morlet(lfp.values, fmin, fmax, nbins, fsamp)
+        cwt             = cw.getdata()
+        cwt             = np.flip(cwt, axis = 0)
+        wave             = np.abs(cwt)**2.0
+        phases             = np.arctan2(np.imag(cwt), np.real(cwt)).transpose()    
+        cwt             = None
+        index             = np.argmax(wave, 0)
+        # memory problem here, need to loop
+        phase             = np.zeros(len(index))    
+        for i in range(len(index)) : phase[i] = phases[i,index[i]]
+        phases             = None
+        if power: 
+            pwrs         = cw.getpower()        
+            pwr         = np.zeros(len(index))        
+            for i in range(len(index)):
+                pwr[i] = pwrs[index[i],i]    
+            return nts.Tsd(lfp.index.values, phase), nts.Tsd(lfp.index.values, pwr)
+        else:
+            return nts.Tsd(lfp.index.values, phase)
+
 def refineSleepFromAccel(acceleration, sleep_ep):
-	vl = acceleration[0].restrict(sleep_ep)
-	vl = vl.as_series().diff().abs().dropna()	
-	a, _ = scipy.signal.find_peaks(vl, 0.025)
-	peaks = nts.Tsd(vl.iloc[a])
-	duration = np.diff(peaks.as_units('s').index.values)
-	interval = nts.IntervalSet(start = peaks.index.values[0:-1], end = peaks.index.values[1:])
+    vl = acceleration[0].restrict(sleep_ep)
+    vl = vl.as_series().diff().abs().dropna()    
+    a, _ = find_peaks(vl, 0.025)
+    peaks = nts.Tsd(vl.iloc[a])
+    duration = np.diff(peaks.as_units('s').index.values)
+    interval = nts.IntervalSet(start = peaks.index.values[0:-1], end = peaks.index.values[1:])
+    newsleep_ep = interval.iloc[duration>15.0]
+    newsleep_ep = newsleep_ep.reset_index(drop=True)
+    plt.figure()
+    plt.plot(vl)
+    plt.plot(newsleep_ep, '.')
+    newsleep_ep = newsleep_ep.merge_close_intervals(100000, time_units ='us')
 
-	newsleep_ep = interval.iloc[duration>15.0]
-	newsleep_ep = newsleep_ep.reset_index(drop=True)
-	newsleep_ep = newsleep_ep.merge_close_intervals(100000, time_units ='us')
+    newsleep_ep    = sleep_ep.intersect(newsleep_ep)
 
-	newsleep_ep	= sleep_ep.intersect(newsleep_ep)
-
-	return newsleep_ep
+    return newsleep_ep
 
 def smoothAngularTuningCurves(tuning_curves, window = 20, deviation = 3.0):
     for i in tuning_curves.columns:
@@ -461,3 +510,52 @@ def computeSpeedTuningCurves(spikes, position, ep, bin_size = 0.1, nb_bins = 20,
         speed_curves[k] = spike_count/bin_size
 
     return speed_curves
+
+"""
+Filters
+"""
+
+from scipy.signal import butter, lfilter
+
+def butter_bandpass(lowcut, highcut, fs, order=5):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = lfilter(b, a, data)
+    return y
+
+#########################################################
+# HELPERS
+#########################################################
+def writeNeuroscopeEvents(path, ep, name):
+    f = open(path, 'w')
+    for i in range(len(ep)):
+        f.writelines(str(ep.as_units('ms').iloc[i]['start']) + " "+name+" start "+ str(1)+"\n")
+        f.writelines(str(ep.as_units('ms').iloc[i]['end']) + " "+name+" end "+ str(1)+"\n")
+    f.close()        
+    return
+
+def getAllInfos(data_directory, datasets):
+    allm = np.unique(["/".join(s.split("/")[0:2]) for s in datasets])
+    infos = {}
+    for m in allm:
+        path = os.path.join(data_directory, m)
+        csv_file = list(filter(lambda x: '.csv' in x, os.listdir(path)))[0]
+        infos[m.split('/')[1]] = pd.read_csv(os.path.join(path, csv_file), index_col = 0)
+    return infos
+
+def computeSpeed(position, ep, bin_size = 0.1):
+    time_bins     = np.arange(position.index[0], position.index[-1]+bin_size*1e6, bin_size*1e6)
+    index         = np.digitize(position.index.values, time_bins)
+    tmp         = position.groupby(index).mean()
+    tmp.index     = time_bins[np.unique(index)-1]+(bin_size*1e6)/2
+    distance    = np.sqrt(np.power(np.diff(tmp['x']), 2) + np.power(np.diff(tmp['z']), 2))
+    speed         = nts.Tsd(t = tmp.index.values[0:-1]+ bin_size/2, d = distance/bin_size)
+    speed         = speed.restrict(ep)
+    return speed
