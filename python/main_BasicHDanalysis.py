@@ -23,7 +23,7 @@ A. LOAD DATA
 """
 
 # def analysis(data_directory_load, dir2save_plots, ID, session):
-data_directory_load = '/Volumes/LaCie/Timaios/Kilosorted/A4404/A4404-200606/my_data/'
+data_directory_load = '/Volumes/LaCiet/Timaios/Kilosorted/A4403/A4403-200626/A4403-200626/my_data'
     
 # load data
 spikes = pickle.load(open(data_directory_load + '/spikes.pickle', 'rb'))

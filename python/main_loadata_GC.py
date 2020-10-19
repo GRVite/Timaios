@@ -75,10 +75,12 @@ tuning_curves = smoothAngularTuningCurves(tuning_curves, 10, 2)
 #Determine the number of raws
 raws = round(len(spikes)/5)
 plt.figure(figsize=(40,200))
-for i, n in enumerate(tuning_curves.columns):
-    ax=plt.subplot(5,raws+1,i+1, projection = 'polar')
-    plt.plot(tuning_curves[n], color = 'darkorange')
-    plt.title('Neuron' + ' ' + str(i) , loc ='center', pad=25)
+for i, n in enumerate(selection):
+    ax=plt.subplot(2,raws+1,i+1, projection = 'polar')
+    plt.plot(tuning_curves[n], color = 'lightblue')
+    plt.box(on=0)
+    plt.thetagrids(labels=None)
+    # plt.title('Neuron' + ' ' + str(i) , loc ='center', pad=25)
 plt.subplots_adjust(wspace=0.4, hspace=2, top = 0.85)
 plt.show()
 plt.savefig(data_directory + '/plots' + '/HD.pdf')
@@ -119,10 +121,12 @@ selection = [2,3,4,6,7,16,17, 25]
 plt. figure(figsize=(50,60))
 for i,k in enumerate(selection):
     plt.subplot(3,4,i+1)    
-    tmp = gaussian_filter(GF[k].values, sigma = 1)
+    tmp = gaussian_filter(GF[k].values, sigma = 2.1)
     im=imshow(tmp, extent = ext, cmap = 'jet', interpolation = 'bilinear')
     #plt.colorbar(im,fraction=0.046, pad=0.04)
-    plt.title(str(k))
+    plt.xticks([])
+    plt.yticks([])
+    # plt.title(str(k))
 plt.show()
 plt.savefig(data_directory + '/plots' + '/GF_selected.pdf')
 
@@ -135,7 +139,7 @@ for i,k in enumerate(GF.keys()):
     tmp = gaussian_filter(GF[k].values, sigma = 0.2)
     tmp2 = correlate2d(tmp, tmp)
     imshow(tmp2, extent = ext, cmap = 'jet', interpolation = 'bilinear')
-    plt.title(str([i]))
+    # plt.title(str([i]))
 plt.savefig(data_directory + '/plots' + '/Au.pdf')
 
 #Test rotate
